@@ -34,22 +34,29 @@ async def select(sql, args, size=None):
         logging.info('rows returned: %s' % len(rs))
         return rs
 
+#根据评论修改过
 async def execute(sql, args, autocommit=True):
-    log(sql)
-    async with __pool.get() as conn:
-        if not autocommit:
-            await conn.begin()
-        try:
-            async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(sql.replace('?', '%s'), args)
-                affected = cur.rowcount
-            if not autocommit:
-                await conn.commit()
-        except BaseException as e:
-            if not autocommit:
-                await conn.rollback()
-            raise
-        return affected
+	logging.info('SQL: %s' % sql)
+	logging.info('ARGS: %s' % args)
+	async with __pool.get() as conn:
+		if not autocommit:
+			await conn.begin()
+		try:
+			async with conn.cursor(aiomysql.DictCursor) as cur:
+				await cur.execute(sql.replace('?', '%s'), args)
+				affected = cur.rowcount
+				await cur.close()
+			if not autocommit:
+				await conn.commit()
+				logging.info('commit success!')
+		except BaseException as e:
+			if not autocommit:
+				await conn.rollback()
+			raise
+		finally:
+			conn.close()
+		return affected
+	logging.info('rows returned: %s' % affected)
 
 def create_args_string(num):
     L = []
